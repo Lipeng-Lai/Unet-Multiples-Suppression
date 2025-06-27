@@ -1,18 +1,25 @@
 # Unet-Multiples-Suppression
 
-## 1. Build speed model synthesis record in 'syn' folder
+## 1. Prepare for datasets
 ```
 cd syn
 run Data_Modeling_syn1.ipynb
 run Data_Modeling_syn2.ipynb
 run Data_Modeling_SEAM.ipynb
-# put result npz in 'dataset' folder
-cd utils
+
+
+# modify config, such as network kind
+cd configs
+vim config.yaml
+
+
 # Split the data according seismic shot
-python 3Dconvert2D.py
+cd utils
+python 1_3Dconvert2D.py
 
 # Slice the data (256x256)
-python Getpatches.py
+python 2_Getpatches.py
+
 
 # you can view the data in 'view' folder
 cd view
@@ -23,16 +30,14 @@ cd data
 python build_data.py
 ```
 
-## 2. Modify parameters in train.py
+## 2. training
 
 ```
-vim train.py
-# you can modify ..., finally train!
 python train.py
 ```
 
-## 3. Test data in 'test' folder
+## 3. Testing
 ```
+cd test
 run jupyter notebook
 ```
-
