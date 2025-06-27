@@ -1,0 +1,46 @@
+data:
+  batch_size: 4
+  img_size: 256
+  npz_path: "/home/wwd/deeplearning/dataset/"
+  npz_image_path: "/home/wwd/deeplearning/dataset/image/"
+  npz_label_path: "/home/wwd/deeplearning/dataset/label/"
+  image_path: "/home/wwd/deeplearning/data/image/"
+  label_path: "/home/wwd/deeplearning/data/label/"
+  syn_shot_interval: 30 # 30
+  SEAM_shot_interval: 10 # 30
+  Volve_shot_interval: 10 # 5
+  Sigsbee_shot_interval: 5
+  validation_split: 0.2
+  overlap: 2
+
+
+
+model:
+  name: "UNet2D" # DnCNN, UNet2D, ResUNet2D, TransUNet
+  in_chans: 1
+  num_classes: 1
+
+train:
+  epochs: 500
+  clip_grad: True
+  auto_resume: True
+  output: "/home/wwd/deeplearning/checkpoint"
+  save_freq: 20
+  seed: 20020821
+
+optimizer:
+  name: "adamw"
+  betas: [0.9, 0.999]
+  learning_rate: 1e-4
+  weight_decay: 1e-2
+  lr_patience: 10
+  eps: 1e-8
+  momentum: 0.9
+
+lr_scheduler:
+  name: 'cosine'
+  warmup_epochs: 10
+  min_lr: 1e-5
+
+loss:
+  name: "SSIM_L1"
