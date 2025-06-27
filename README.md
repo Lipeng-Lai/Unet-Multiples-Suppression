@@ -17,6 +17,7 @@ vim config.yaml
 cd utils
 python 1_3Dconvert2D.py
 
+
 # Slice the data (256x256)
 python 2_Getpatches.py
 
@@ -24,17 +25,23 @@ python 2_Getpatches.py
 # you can view the data in 'view' folder
 cd view
 
+
 # and finally data put in 'data' folder
 cd data
+
+
 # run for test load data successfully
 python build_data.py
+
+
 ```
 
-## 2. training
 
+## 2. training
 ```
 python train.py
 ```
+
 
 ## 3. Testing
 ```
