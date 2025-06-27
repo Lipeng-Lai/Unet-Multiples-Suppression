@@ -2,97 +2,85 @@ import torch
 import torch.nn as nn
 
 class DoubleConv(nn.Module):
+    """双层卷积模块"""
     def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.double_conv = nn.Sequential(
+        self.conv = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=False),
+            nn.ReLU(inplace=True),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=False)
+            nn.ReLU(inplace=True)
         )
 
     def forward(self, x):
-        return self.double_conv(x)
-
+        return self.conv(x)
 
 class Down(nn.Module):
+    """下采样模块"""
     def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.maxpool_conv = nn.Sequential(
+        self.mpconv = nn.Sequential(
             nn.MaxPool2d(2),
             DoubleConv(in_channels, out_channels)
         )
 
     def forward(self, x):
-        return self.maxpool_conv(x)
-
+        return self.mpconv(x)
 
 class Up(nn.Module):
+    """上采样模块"""
     def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-        self.conv = DoubleConv(in_channels, out_channels)
+        self.up = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2)
+        self.conv = DoubleConv(out_channels*2, out_channels)
 
     def forward(self, x1, x2):
         x1 = self.up(x1)
-        diffY = x2.size()[2] - x1.size()[2]
-        diffX = x2.size()[3] - x1.size()[3]
-        x1 = nn.functional.pad(x1, [diffX // 2, diffX - diffX // 2,
-                                    diffY // 2, diffY - diffY // 2])
+        # 拼接特征图
         x = torch.cat([x2, x1], dim=1)
         return self.conv(x)
 
-
-class OutConv(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super(OutConv, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
-
-    def forward(self, x):
-        return self.conv(x)
-
-
 class UNet2D(nn.Module):
-    def __init__(self, n_channels, n_classes):
+    def __init__(self, in_channels=1):
         super().__init__()
-        self.n_channels = n_channels
-        self.n_classes = n_classes
-
-        self.inc = DoubleConv(n_channels, 16)
-        self.down1 = Down(16, 32)
-        self.down2 = Down(32, 64)
-        self.down3 = Down(64, 128)
-        self.down4 = Down(128, 256)  # 新增下采样层
-
-        self.up1 = Up(384, 128)  # 对应 down4
-        self.up2 = Up(192, 64)
-        self.up3 = Up(96, 32)
-        self.up4 = Up(48, 16)
-        self.out = OutConv(16, n_classes)
+        # 编码器
+        self.inc = DoubleConv(in_channels, 64)
+        self.down1 = Down(64, 128)
+        self.down2 = Down(128, 256)
+        self.down3 = Down(256, 512)
+        self.down4 = Down(512, 1024)
+        
+        # 解码器
+        self.up1 = Up(1024, 512)
+        self.up2 = Up(512, 256)
+        self.up3 = Up(256, 128)
+        self.up4 = Up(128, 64)
+        
+        # 输出层
+        self.outc = nn.Conv2d(64, 1, kernel_size=1)
 
     def forward(self, x):
-        x1 = self.inc(x)
-        x2 = self.down1(x1)
-        x3 = self.down2(x2)
-        x4 = self.down3(x3)
-        x5 = self.down4(x4)  # 新增下采样
-
-        x = self.up1(x5, x4)  # 对应 down4
-        x = self.up2(x, x3)
-        x = self.up3(x, x2)
-        x = self.up4(x, x1)
-        logits = self.out(x)
-
-        return logits
-
+        # 编码路径
+        x1 = self.inc(x)        # [1,64,256,256]
+        x2 = self.down1(x1)     # [1,128,128,128]
+        x3 = self.down2(x2)     # [1,256,64,64]
+        x4 = self.down3(x3)     # [1,512,32,32]
+        x5 = self.down4(x4)     # [1,1024,16,16]
+        
+        # 解码路径
+        d = self.up1(x5, x4)    # [1,512,32,32]
+        d = self.up2(d, x3)     # [1,256,64,64]
+        d = self.up3(d, x2)     # [1,128,128,128]
+        d = self.up4(d, x1)     # [1,64,256,256]
+        
+        # 输出
+        return self.outc(d)     # [1,1,256,256]
 
 if __name__ == "__main__":
-    x = torch.randn(1, 1, 256, 256)  # 修改输入大小为 256x256
-    
-    model = UNet2D(n_channels=1, n_classes=1)
-    
+    x = torch.randn(1, 1, 256, 256)
+    model = UNet2D(in_channels=1)
     output = model(x)
     
     print("输入形状:", x.shape)
