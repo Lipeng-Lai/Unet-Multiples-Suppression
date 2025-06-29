@@ -1,5 +1,10 @@
 # Unet-Multiples-Suppression
 
+## 0、Prepare for enviroment
+```
+pip install monai omegaconf kornia
+```
+
 ## 1. Prepare for datasets
 ```
 cd syn
